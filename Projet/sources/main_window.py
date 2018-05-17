@@ -1,42 +1,80 @@
 from tkinter import *
 import tkinter.filedialog as filedialog
-from PIL import Image
+from PIL import Image, ImageTk
 
-#todo faire marcher PIL
+
 class MainWindow:
     def __init__(self, conf):
         self.config = conf
 
         self.window_name = self.config['window_name']
         self.window_size = self.config['window_size']
-        self.main_ui = Tk()
-        self.main_ui.title(self.window_name)
-        self.main_ui.geometry(self.window_size)
 
-        self.filetypes = [("PNG", "*.png"), ("JPG", "*.jpg")]
+        # Accepted files for the program
+        self.filetypes = [("Fichiers JPEG & PNG", ("*.jpg", "*.png"))]
 
-        self.label_value = StringVar()
-        self.label_value.set("AAAAAAAAAAAAH")
+        # Work area size
+        self.wa_width, self.wa_height = str.split(self.config['work_area_dimensions'], ",")
 
-        self.cv = Canvas()
-        self.cv.pack()
+        # Menu width
+        self.menu_width = self.config['menu_width']
 
-        self.label = Label(self.main_ui, textvariable=self.label_value)
-        self.label.pack()
+        # Instanciating main window (root)
+        self.root = Tk()
+        self.root.title(self.window_name)
+        self.root.resizable(False, False)
+        self.root.geometry(self.window_size)
 
-        button_open = Button(self.main_ui, text="Open File", command=self.open_select_dialog)
-        button_open.pack()
+        # Main window has focus by default
+        self.root.focus_set()
+        # Binding esc key to a function that halts the program
+        self.root.bind("<Escape>", self.close_window)
 
-        pic = Image.open("C:\\Users\\Jeremy.COMELLI\\Desktop\\Screenshot_2.png", "r")
-        self.cv.create_image(10, 10, image=pic)
+        # expand=True, fill=BOTH
+        '''self.label_value = StringVar()
+        self.label_value.set("This is a label")
+        self.label = Label(self.root, textvariable=self.label_value)
+        self.label.pack()'''
 
-        self.main_ui.mainloop()
+        # Instantiating widgets
+        # TODO: pour l'instant, la fenêtre n'est pas resizable. Si elle le devient, il faudra trouver un moyen de faire marcher tout ça
+        self.main_frame = Frame(self.root, width=400, bg="#8a0be5")
+        self.menu_frame = Frame(self.root, bg="#48f442")
+        self.cv = Canvas(self.main_frame, bg="#4286f4", height=self.wa_height, width=str(int(self.wa_width) - int(self.menu_width)))
+
+        self.open_button = Button(self.menu_frame, text="Ouvrir...", command=self.open_select_dialog, width=22)
+        self.save_button = Button(self.menu_frame, text="Enregistrer sous...", command=self.open_select_dialog, width=22)
+        self.recognize_button = Button(self.menu_frame, text="Reconnaître la sélection", command=self.open_select_dialog, width=22)
+        self.new_collage_button = Button(self.menu_frame, text="Nouveau Collage", command=self.open_select_dialog, width=22)
+
+        # Placing widgets on the window
+        self.main_frame.grid(column=0, row=0)
+        self.menu_frame.grid(column=1, row=0, ipadx=20, ipady=20, sticky=N)
+        self.cv.grid(column=0, row=0)
+        self.open_button.grid(column=0, row=0, pady=5, rowspan=2, sticky=E)
+        self.save_button.grid(column=0, row=2, pady=5, rowspan=2, sticky=E)
+        self.recognize_button.grid(column=0, row=4, pady=5, rowspan=2, sticky=E)
+        self.new_collage_button.grid(column=0, row=6, pady=5, rowspan=2, sticky=E)
+
+        self.root.mainloop()
 
     def open_select_dialog(self):
-        self.main_ui.filename = filedialog.askopenfilename(filetypes=self.filetypes)
         print("button clicked")
-        self.label_value.set(self.main_ui.filename)
+        self.load_image(filedialog.askopenfilename(filetypes=self.filetypes))
 
     def load_image(self, path):
-        pic = open(path)
+        if path is not "":
+            pic = Image.open(path, "r")
+            self.root.picture = ImageTk.PhotoImage(pic)
+            print("Image loaded")
+            self.cv.create_image(50, 50, image=self.root.picture, anchor='nw')
+            self.root.update_idletasks()
+            self.root.update()
 
+    @staticmethod
+    def close_window(event):
+        print("event registered")
+
+        if event.keysym == "Escape":
+            print("escape recognized")
+            exit()
