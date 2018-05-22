@@ -88,24 +88,6 @@ class MainWindow:
         self.recognize_button.grid(column=0, row=4, pady=5, rowspan=2, sticky=E)
         self.new_collage_button.grid(column=0, row=6, pady=5, rowspan=2)
 
-
-        # Code by ©Sunjay Varma
-        x, y = None, None
-
-        def cool_design(event):
-            global x, y
-            kill_xy()
-
-            dashes = [3, 2]
-            x = self.cv.create_line(event.x, 0, event.x, 1000, dash=dashes, tags='no')
-            y = self.cv.create_line(0, event.y, 1000, event.y, dash=dashes, tags='no')
-
-        def kill_xy(event=None):
-            self.cv.delete('no')
-
-        self.cv.bind('<Motion>', cool_design, '+')
-
-
         # End of code by ©Sunjay Varma
 
         self.root.mainloop()
@@ -160,43 +142,57 @@ class RectTracker:
         self.select_topleft = [100, 100]
         self.height, self.width = 200, 100
         self.lastx, self.lasty = None, None
+        self.active_side = None
         self.canvas = canvas
         self.item = None
-
+        self.item = self.draw()
         self.set_even_handler()
-        self.draw()
 
-    def draw(self):
+    def draw(self, delta_x=0, delta_y=0):
         """Draws the rectangle"""
-        return self.canvas.create_rectangle(self.select_topleft[0], self.select_topleft[1], self.select_topleft[0] + self.height, self.select_topleft[1] + self.width)
+        return self.canvas.create_rectangle(self.select_topleft[0], self.select_topleft[1], self.select_topleft[0] + self.width + delta_x, self.select_topleft[1] + self.height + delta_y, width=2)
 
     def set_even_handler(self):
         """Setup automatic drawing"""
-        self.canvas.bind("<Button-1>", self.__update, '+')
+        self.canvas.bind("<Button-1>", self.__get_mouse_focus, '+')
         self.canvas.bind("<B1-Motion>", self.__update, '+')
         self.canvas.bind("<ButtonRelease-1>", self.__stop, '+')
+        self.canvas.bind('<Motion>', self.cool_design, '+')
+
+    # This function is used to determine which side of the selection box is clicked on, by comparing mouse's XY to each side's XY
+    def __get_mouse_focus(self, event):
+        if self.select_topleft[1] - 3 < event.y < self.select_topleft[1] + 4 and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width:
+            self.active_side = 0
+            print("Top Side")
+        elif self.select_topleft[0] + self.width - 3 < event.x < self.select_topleft[0] + self.width + 4 and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height:
+            self.active_side = 1
+            print("Right Side")
+        elif self.select_topleft[1] + self.height - 3 < event.y < self.select_topleft[1] + self.height + 4 and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width:
+            self.active_side = 2
+            print("Bottom Side")
+        elif self.select_topleft[0] - 3 < event.x < self.select_topleft[0] + 4 and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height:
+            self.active_side = 3
+            print("Left Side")
+        else:
+            self.active_side = None
+            print("No Active side")
+
+        self.start_x = event.x
+        self.start_y = event.y
 
     def __update(self, event):
-        # TODO:  find a way to move edges of select box
-        # Here we calculate Delta X and Y for the mouse pointer
-        # If lastx and lasty are null, that means user just clicked, and delta hasn't changed
-        if self.lastx is None and self.lasty is None:
-            self.lastx = event.x
-            self.lasty = event.y
-        else:
-            if event.x != self.lastx:
-                delta_x =
+        delta_x = event.x - self.start_x
+        delta_y = event.y - self.start_y
 
         self.canvas.delete(self.item)
 
-        self.item = self.draw()
+        self.item = self.draw(delta_x, delta_y)
         # self._command(self.start, (event.x, event.y))
         self.select_end = (event.x, event.y)
 
     def __stop(self, event):
         # Makes the rectangle disappear once mouse1 is released
-        self.canvas.delete(self.item)
-        self.item = None
+        self.start_x, self.start_y = None, None
 
         # TODO: bouger ça dans une méthode dédiée
         # To save the image, we use PIL to get a screenshot of the specified coordinates
@@ -204,4 +200,24 @@ class RectTracker:
         # This is kind of a workaround, and it won't work if the window border size changes, like on W10 or any other os really
         # ImageGrab.grab().crop((self.root.winfo_x() + self.select_start[0] + 9, self.root.winfo_y() + self.select_start[1] + 31, self.root.winfo_x() + self.select_end[0] + 7, self.root.winfo_y() + self.select_end[1] + 29)).save("C:\\Users\\Jeremy.COMELLI\\Desktop\\test.png")
 
+        # Code by ©Sunjay Varma
+        x, y = None, None
 
+    def cool_design(self, event):
+        global x, y
+        self.kill_xy()
+
+        dashes = [3, 2]
+        x = self.canvas.create_line(event.x, 0, event.x, 1000, dash=dashes, tags='no')
+        y = self.canvas.create_line(0, event.y, 1000, event.y, dash=dashes, tags='no')
+
+        # Here we change the cursor, according to it's position
+        if self.select_topleft[1] - 3 < event.y < self.select_topleft[1] + 4 and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width or self.select_topleft[1] + self.height - 3 < event.y < self.select_topleft[1] + self.height + 4 and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width:
+            self.canvas.configure(cursor="sb_v_double_arrow")
+        elif self.select_topleft[0] - 3 < event.x < self.select_topleft[0] + 4 and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height or self.select_topleft[0] + self.width - 3 < event.x < self.select_topleft[0] + self.width + 4 and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height:
+            self.canvas.configure(cursor="sb_h_double_arrow")
+        else:
+            self.canvas.configure(cursor="arrow")
+
+    def kill_xy(self, event=None):
+        self.canvas.delete('no')
