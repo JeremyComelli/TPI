@@ -70,7 +70,7 @@ class MainWindow:
         self.cv = Canvas(self.main_frame, bg="#4286f4", height=self.wa_height, width=str(int(self.wa_width) - int(self.menu_width)))
 
         # Selection box
-        rect = RectTracker(self.cv, self.root)
+        self.rect = RectTracker(self.cv, self.root)
 
         # Creating menu buttons
         self.open_button = Button(self.menu_frame, text="Ouvrir...", command=self.open_select_dialog, width=22)
@@ -114,6 +114,8 @@ class MainWindow:
         for pic in self.root.canvas_elements:
             self.cv.create_image(50, 50, image=pic, anchor='nw')
 
+
+
         self.root.update_idletasks()
         self.root.update()
 
@@ -148,9 +150,24 @@ class RectTracker:
         self.item = self.draw()
         self.set_even_handler()
 
-    def draw(self, delta_x=0, delta_y=0):
+    def draw(self, delta=0):
         """Draws the rectangle"""
-        return self.canvas.create_rectangle(self.select_topleft[0], self.select_topleft[1], self.select_topleft[0] + self.width + delta_x, self.select_topleft[1] + self.height + delta_y, width=2)
+        self.move_side(delta)
+        return self.canvas.create_rectangle(self.select_topleft[0], self.select_topleft[1], self.select_topleft[0] + self.width, self.select_topleft[1] + self.height, width=2)
+
+    def move_side(self, delta):
+        if self.active_side is 0:
+            self.select_topleft[1] += delta
+            self.height -= delta
+        elif self.active_side is 1:
+            self.width += delta
+        elif self.active_side is 2:
+            self.height += delta
+        elif self.active_side is 3:
+            self.select_topleft[0] += delta
+            self.width -= delta
+        else:
+            print("Error, no active side")
 
     def set_even_handler(self):
         """Setup automatic drawing"""
@@ -183,10 +200,16 @@ class RectTracker:
     def __update(self, event):
         delta_x = event.x - self.start_x
         delta_y = event.y - self.start_y
+        change = 0
+        if self.active_side is 0 or self.active_side is 2:
+            change = delta_y
+        elif self.active_side is 1 or self.active_side is 3:
+            change = delta_x
 
         self.canvas.delete(self.item)
 
-        self.item = self.draw(delta_x, delta_y)
+        self.item = self.draw(change)
+        self.start_x, self.start_y = event.x, event.y
         # self._command(self.start, (event.x, event.y))
         self.select_end = (event.x, event.y)
 
