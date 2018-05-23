@@ -5,32 +5,6 @@ from random import shuffle
 from PIL import ImageGrab
 
 
-def groups(glist, numPerGroup=2):
-    result = []
-    i = 0
-    cur = []
-    for item in glist:
-        if not i < numPerGroup:
-            result.append(cur)
-            cur = []
-            i = 0
-        cur.append(item)
-        i += 1
-    if cur:
-        result.append(cur)
-    return result
-
-
-def average(points):
-    aver = [0,0]
-
-    for point in points:
-        aver[0] += point[0]
-        aver[1] += point[1]
-
-    return aver[0]/len(points), aver[1]/len(points)
-
-
 class MainWindow:
     def __init__(self, conf):
         self.config = conf
@@ -114,8 +88,6 @@ class MainWindow:
         for pic in self.root.canvas_elements:
             self.cv.create_image(50, 50, image=pic, anchor='nw')
 
-
-
         self.root.update_idletasks()
         self.root.update()
 
@@ -147,15 +119,15 @@ class RectTracker:
         self.active_side = None
         self.canvas = canvas
         self.item = None
-        self.item = self.draw()
         self.set_even_handler()
 
-    def draw(self, delta=0):
+    def draw(self, event, delta):
         """Draws the rectangle"""
-        self.move_side(delta)
+        if delta is not 0:
+            self.move_side(event, delta)
         return self.canvas.create_rectangle(self.select_topleft[0], self.select_topleft[1], self.select_topleft[0] + self.width, self.select_topleft[1] + self.height, width=2)
 
-    def move_side(self, delta):
+    def move_side(self, event, delta):
         if self.active_side is 0:
             self.select_topleft[1] += delta
             self.height -= delta
@@ -166,8 +138,10 @@ class RectTracker:
         elif self.active_side is 3:
             self.select_topleft[0] += delta
             self.width -= delta
+        # If no active side is selected, creating a new rectangle from scratch
         else:
-            print("Error, no active side")
+            self.width += delta[0]
+            self.height += delta[1]
 
     def set_even_handler(self):
         """Setup automatic drawing"""
@@ -190,9 +164,27 @@ class RectTracker:
         elif self.select_topleft[0] - 3 < event.x < self.select_topleft[0] + 4 and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height:
             self.active_side = 3
             print("Left Side")
+        elif self.width < 1 and self.select_topleft[1] - 3 < event.y < self.select_topleft[1] + 4 and self.select_topleft[0] + self.width < event.x < self.select_topleft[0]:
+            self.active_side = 0
+            print("Top Side")
+        elif self.height < 1 and self.select_topleft[0] + self.width - 3 < event.x < self.select_topleft[0] + self.width + 4 and self.select_topleft[1] + self.height < event.y < self.select_topleft[1]:
+            self.active_side = 1
+            print("Right Side")
+
+        elif self.width < 1 and self.select_topleft[1] + self.height - 3 < event.y < self.select_topleft[1] + self.height + 4 and self.select_topleft[0]+ self.width < event.x < self.select_topleft[0]:
+            self.active_side = 2
+            print("Bottom Side")
+        elif self.height < 1 and self.select_topleft[0] - 3 < event.x < self.select_topleft[0] + 4 and self.select_topleft[1] + self.heightl < event.y < self.select_topleft[1]:
+            self.active_side = 3
+            print("Left Side")
         else:
             self.active_side = None
-            print("No Active side")
+            print("No Active side, creating new Rectangle")
+            self.canvas.delete(self.item)
+            self.width = 0
+            self.height = 0
+            self.select_topleft[0] = event.x
+            self.select_topleft[1] = event.y
 
         self.start_x = event.x
         self.start_y = event.y
@@ -207,8 +199,12 @@ class RectTracker:
             change = delta_x
 
         self.canvas.delete(self.item)
+        if self.active_side is not None:
+            self.item = self.draw(event, change)
+        else:
+            self.item = self.draw(event, [delta_x, delta_y])
+        self.canvas.update_idletasks()
 
-        self.item = self.draw(change)
         self.start_x, self.start_y = event.x, event.y
         # self._command(self.start, (event.x, event.y))
         self.select_end = (event.x, event.y)
@@ -234,11 +230,16 @@ class RectTracker:
         x = self.canvas.create_line(event.x, 0, event.x, 1000, dash=dashes, tags='no')
         y = self.canvas.create_line(0, event.y, 1000, event.y, dash=dashes, tags='no')
 
-        # Here we change the cursor, according to it's position
+        # Here we change the cursor according to which select_box's side it is hovering
         if self.select_topleft[1] - 3 < event.y < self.select_topleft[1] + 4 and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width or self.select_topleft[1] + self.height - 3 < event.y < self.select_topleft[1] + self.height + 4 and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width:
             self.canvas.configure(cursor="sb_v_double_arrow")
         elif self.select_topleft[0] - 3 < event.x < self.select_topleft[0] + 4 and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height or self.select_topleft[0] + self.width - 3 < event.x < self.select_topleft[0] + self.width + 4 and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height:
             self.canvas.configure(cursor="sb_h_double_arrow")
+        elif self.height < 1 and self.select_topleft[0] - 3 < event.x < self.select_topleft[0] + 4 and self.select_topleft[1] + self.height < event.y < self.select_topleft[1] or self.select_topleft[0] + self.width - 3 < event.x < self.select_topleft[0] + self.width + 4 and self.select_topleft[1] + self.height < event.y < self.select_topleft[1]:
+            self.canvas.configure(cursor="sb_h_double_arrow")
+        elif self.width < 1 and self.select_topleft[1] - 3 < event.y < self.select_topleft[1] + 4 and self.select_topleft[0] + self.width < event.x < self.select_topleft[0] or self.select_topleft[1] + self.height - 3 < event.y < self.select_topleft[1] + self.height + 4 and self.select_topleft[0] + self.width < event.x < self.select_topleft[0]:
+            self.canvas.configure(cursor="sb_v_double_arrow")
+
         else:
             self.canvas.configure(cursor="arrow")
 
