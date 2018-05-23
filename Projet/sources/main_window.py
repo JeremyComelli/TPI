@@ -3,7 +3,8 @@ import tkinter.filedialog as filedialog
 from PIL import Image, ImageTk
 from random import shuffle
 from PIL import ImageGrab
-
+from scipy import misc
+import numpy
 
 class MainWindow:
     def __init__(self, conf):
@@ -15,10 +16,10 @@ class MainWindow:
         # Accepted files for the program
         self.filetypes = [("Fichiers JPEG & PNG", ("*.jpg", "*.png"))]
 
+        # Images which are displayed on the canvas are also saved as a numpy array, so we can manipulate them and use the array for NN processing
         self.canvas_elements = list
+        self.numpy_image = None
 
-        self.select_start = None
-        self.select_end = None
 
         # Work area size
         self.wa_width, self.wa_height = str.split(self.config['work_area_dimensions'], ",")
@@ -34,8 +35,10 @@ class MainWindow:
         self.root.canvas_elements = list()
         # Main window has focus by default
         self.root.focus_set()
-        # Binding esc key to a function that halts the program
-        self.root.bind("<Escape>", self.close_window)
+
+        # Binding esc key to a function that halts the program, disabled for release
+        if bool(self.config['devmode']):
+            self.root.bind("<Escape>", self.close_window)
 
         # Instantiating widgets
         # TODO: pour l'instant, la fenêtre n'est pas resizable. Si elle le devient, il faudra trouver un moyen de faire marcher tout ça
@@ -44,7 +47,8 @@ class MainWindow:
         self.cv = Canvas(self.main_frame, bg="#4286f4", height=self.wa_height, width=str(int(self.wa_width) - int(self.menu_width)))
 
         # Selection box
-        self.rect = RectTracker(self.cv, self.root)
+        self.rect = RectTracker(self.cv, self.root, self.config)
+        self.select_start = None
 
         # Creating menu buttons
         self.open_button = Button(self.menu_frame, text="Ouvrir...", command=self.open_select_dialog, width=22)
@@ -62,8 +66,6 @@ class MainWindow:
         self.recognize_button.grid(column=0, row=4, pady=5, rowspan=2, sticky=E)
         self.new_collage_button.grid(column=0, row=6, pady=5, rowspan=2)
 
-        # End of code by ©Sunjay Varma
-
         self.root.mainloop()
 
     def open_select_dialog(self):
@@ -72,7 +74,7 @@ class MainWindow:
 
     def open_save_dialog(self):
         print("button clicked")
-        self.save_image(filedialog.asksaveasfilename(confirmoverwrite=True, filetypes=[("Fichier JPEG", "*.jpg")]))
+        self.save_image(filedialog.asksaveasfilename(confirmoverwrite=True, filetypes=self.config['filetypes']))
 
     def load_image(self, path, multiple=False):
         if path is not "":
@@ -83,7 +85,10 @@ class MainWindow:
             else:
                 self.canvas_elements = []
                 self.root.canvas_elements = []
-                self.canvas_elements.append(Image.open(path, "r"))
+                numpy_image = misc.imread(path)
+                self.numpy_image = (numpy_image)
+                print(numpy_image.shape)
+                self.canvas_elements.append(Image.fromarray(numpy_image[0:10]))
                 self.root.canvas_elements.append(ImageTk.PhotoImage(self.canvas_elements[0]))
         for pic in self.root.canvas_elements:
             self.cv.create_image(50, 50, image=pic, anchor='nw')
@@ -109,8 +114,10 @@ class RectTracker:
         Heavily modified by Jeremy Comelli on 18.05.2018
         Pasted from http://code.activestate.com/recipes/577409-python-tkinter-canvas-rectangle-selection-box/'''
 
-    def __init__(self, canvas, root):
+    def __init__(self, canvas, root, conf):
         self.root = root
+        self.config = conf
+        self.select_hitbox = int(self.config['select_hitbox'])
 
         # TODO: s
         self.select_topleft = [100, 100]
@@ -174,7 +181,7 @@ class RectTracker:
         elif self.width < 1 and self.select_topleft[1] + self.height - 3 < event.y < self.select_topleft[1] + self.height + 4 and self.select_topleft[0]+ self.width < event.x < self.select_topleft[0]:
             self.active_side = 2
             print("Bottom Side")
-        elif self.height < 1 and self.select_topleft[0] - 3 < event.x < self.select_topleft[0] + 4 and self.select_topleft[1] + self.heightl < event.y < self.select_topleft[1]:
+        elif self.height < 1 and self.select_topleft[0] - 3 < event.x < self.select_topleft[0] + 4 and self.select_topleft[1] + self.height < event.y < self.select_topleft[1]:
             self.active_side = 3
             print("Left Side")
         else:
@@ -231,13 +238,13 @@ class RectTracker:
         y = self.canvas.create_line(0, event.y, 1000, event.y, dash=dashes, tags='no')
 
         # Here we change the cursor according to which select_box's side it is hovering
-        if self.select_topleft[1] - 3 < event.y < self.select_topleft[1] + 4 and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width or self.select_topleft[1] + self.height - 3 < event.y < self.select_topleft[1] + self.height + 4 and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width:
+        if self.select_topleft[1] - self.select_hitbox < event.y < self.select_topleft[1] + self.select_hitbox and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width or self.select_topleft[1] + self.height - self.select_hitbox < event.y < self.select_topleft[1] + self.height + self.select_hitbox and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width:
             self.canvas.configure(cursor="sb_v_double_arrow")
-        elif self.select_topleft[0] - 3 < event.x < self.select_topleft[0] + 4 and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height or self.select_topleft[0] + self.width - 3 < event.x < self.select_topleft[0] + self.width + 4 and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height:
+        elif self.select_topleft[0] - self.select_hitbox < event.x < self.select_topleft[0] + self.select_hitbox and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height or self.select_topleft[0] + self.width - self.select_hitbox < event.x < self.select_topleft[0] + self.width + self.select_hitbox and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height:
             self.canvas.configure(cursor="sb_h_double_arrow")
-        elif self.height < 1 and self.select_topleft[0] - 3 < event.x < self.select_topleft[0] + 4 and self.select_topleft[1] + self.height < event.y < self.select_topleft[1] or self.select_topleft[0] + self.width - 3 < event.x < self.select_topleft[0] + self.width + 4 and self.select_topleft[1] + self.height < event.y < self.select_topleft[1]:
+        elif self.height < 1 and self.select_topleft[0] - self.select_hitbox < event.x < self.select_topleft[0] + self.select_hitbox and self.select_topleft[1] + self.height < event.y < self.select_topleft[1] or self.select_topleft[0] + self.width - self.select_hitbox < event.x < self.select_topleft[0] + self.width + self.select_hitbox and self.select_topleft[1] + self.height < event.y < self.select_topleft[1]:
             self.canvas.configure(cursor="sb_h_double_arrow")
-        elif self.width < 1 and self.select_topleft[1] - 3 < event.y < self.select_topleft[1] + 4 and self.select_topleft[0] + self.width < event.x < self.select_topleft[0] or self.select_topleft[1] + self.height - 3 < event.y < self.select_topleft[1] + self.height + 4 and self.select_topleft[0] + self.width < event.x < self.select_topleft[0]:
+        elif self.width < 1 and self.select_topleft[1] - self.select_hitbox < event.y < self.select_topleft[1] + self.select_hitbox and self.select_topleft[0] + self.width < event.x < self.select_topleft[0] or self.select_topleft[1] + self.height - self.select_hitbox < event.y < self.select_topleft[1] + self.height + self.select_hitbox and self.select_topleft[0] + self.width < event.x < self.select_topleft[0]:
             self.canvas.configure(cursor="sb_v_double_arrow")
 
         else:
