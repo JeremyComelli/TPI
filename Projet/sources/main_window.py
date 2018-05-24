@@ -75,7 +75,7 @@ class MainWindow:
         self.load_image(filedialog.askopenfilename(filetypes=self.filetypes))
 
     def save_image(self):
-        self.images[0].save_np_as_image(filedialog.asksaveasfilename(confirmoverwrite=True, filetypes=self.filetypes), self.rect.get_image_coordinates((self.images[0].origin_x, self.images[0].origin_y)), (self.rect.width, self.rect.height))
+        self.images[0].save_np_as_image(filedialog.asksaveasfilename(confirmoverwrite=True, filetypes=self.filetypes), self.rect.get_select_origin((self.images[0].origin_x, self.images[0].origin_y)), (self.rect.width, self.rect.height))
 
     def load_image(self, path, multiple=False):
         if path is not "":
@@ -89,7 +89,7 @@ class MainWindow:
                 ##
 
                 # Creating an image object
-                np_image = NumpyImage(path, self.root, self.cv, [0, 0])
+                np_image = NumpyImage(path, self.root, self.cv)
 
                 # Image object is added to our list
                 self.images.append(np_image)
@@ -114,8 +114,11 @@ class NumpyImage:
     def __init__(self, path, root, canvas, origin=[0, 0]):
         self.root = root
         self.cv = canvas
-        self.origin_x = origin[0]
-        self.origin_y = origin[1]
+
+        # Here we add a small offset, because for some reason the canvas starts outside of the frame
+        self.origin_x = origin[0] + 2
+        self.origin_y = origin[1] + 2
+
         self.path = path
         self.image_np = None
         self.image_tk = None
@@ -131,14 +134,33 @@ class NumpyImage:
     def add_to_canvas(self):
         self.root.canvas_elements.append(self.image_tk)
         self.root_id = len(self.root.canvas_elements) - 1
-        self.cv.create_image(0, 0, image=self.image_tk, anchor='nw', tags=str(self.root_id))
+        self.cv.create_image(self.origin_x, self.origin_y, image=self.image_tk, anchor='nw', tags=str(self.root_id))
 
     def save_np_as_image(self, save_path, topleft, size):
         save_width, save_height = size
         save_origin_x, save_origin_y = topleft
-        print("Selection box Origin: x" + str(save_origin_x) + " y:" + str(save_origin_y))
 
-        saved_image = Image.fromarray(self.image_np[save_origin_y:save_height, save_origin_x:save_width])
+        print("--Topleft X: " + str(save_origin_x) + ", Y: " + str(save_origin_y))
+        print("--Width: " + str(save_width) + ", Height: " + str(save_height))
+
+        if save_width < 0:
+            save_origin_x += save_width
+            save_width = abs(save_width) + save_origin_x
+        else:
+            save_width += save_origin_x
+
+        if save_height < 0:
+            save_origin_y += save_height
+            save_height = abs(save_height) + save_origin_y
+        else:
+            save_height += save_origin_y
+
+
+
+        print("--Topleft X: " + str(save_origin_x) + ", Y: " + str(save_origin_y))
+        print("--Width: " + str(save_width) + ", Height: " + str(save_height))
+
+        saved_image = Image.fromarray(self.image_np[save_origin_y:save_height:1, save_origin_x:save_width:1])
         saved_image.save(save_path)
         print("Saving image")
 
@@ -153,8 +175,8 @@ class RectTracker:
         self.config = conf
         self.select_hitbox = int(self.config['select_hitbox'])
 
-        # TODO: s
         self.select_topleft = [100, 100]
+        self.start = self.select_topleft
         self.height, self.width = 200, 100
         self.lastx, self.lasty = None, None
         self.active_side = None
@@ -195,7 +217,6 @@ class RectTracker:
     def __get_mouse_focus(self, event):
         if self.select_topleft[1] - self.select_hitbox < event.y < self.select_topleft[1] + self.select_hitbox and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width:
             self.active_side = 0
-
             print("Top Side")
         elif self.select_topleft[0] + self.width - self.select_hitbox < event.x < self.select_topleft[0] + self.width + self.select_hitbox and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height:
             self.active_side = 1
@@ -264,7 +285,7 @@ class RectTracker:
         # Code by ©Sunjay Varma
         x, y = None, None
 
-    def get_image_coordinates(self, image_origin):
+    def get_select_origin(self, image_origin):
         image_x = self.select_topleft[0] - image_origin[0]
         image_y = self.select_topleft[1] - image_origin[1]
 

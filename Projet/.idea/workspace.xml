@@ -26,8 +26,8 @@
       <file leaf-file-name="main_window.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/sources/main_window.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="323">
-              <caret line="252" lean-forward="true" selection-start-line="252" selection-end-line="252" />
+            <state relative-caret-position="51">
+              <caret line="141" lean-forward="true" selection-start-line="141" selection-end-line="141" />
               <folding>
                 <element signature="e#0#21#0" expanded="true" />
               </folding>
@@ -78,6 +78,10 @@
       <find>event</find>
       <find>-self.select_hitbox</find>
       <find>+ 4</find>
+      <find>get_</find>
+      <find>get_image</find>
+      <find>load</find>
+      <find>select.</find>
     </findStrings>
     <replaceStrings>
       <replace>main_ui</replace>
@@ -117,6 +121,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Course" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -133,7 +138,6 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Course" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -180,9 +184,9 @@
     <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24973656" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.32934782" />
       <window_info anchor="bottom" id="Version Control" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Python Console" order="8" weight="0.32934782" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.32934782" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
       <window_info id="Structure" order="1" weight="0.25" />
@@ -210,16 +214,6 @@
           <url>file://$PROJECT_DIR$/sources/main_window.py</url>
           <line>80</line>
           <option name="timeStamp" value="22" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/sources/main_window.py</url>
-          <line>98</line>
-          <option name="timeStamp" value="28" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/sources/main_window.py</url>
-          <line>100</line>
-          <option name="timeStamp" value="29" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
@@ -609,8 +603,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/sources/main_window.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="323">
-          <caret line="252" lean-forward="true" selection-start-line="252" selection-end-line="252" />
+        <state relative-caret-position="51">
+          <caret line="141" lean-forward="true" selection-start-line="141" selection-end-line="141" />
           <folding>
             <element signature="e#0#21#0" expanded="true" />
           </folding>
