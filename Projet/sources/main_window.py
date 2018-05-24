@@ -17,8 +17,7 @@ class MainWindow:
         self.filetypes = [("Fichiers JPEG & PNG", ("*.jpg", "*.png"))]
 
         # Images which are displayed on the canvas are also saved as a numpy array, so we can manipulate them and use the array for NN processing
-        self.canvas_elements = list
-        self.numpy_image = None
+        self.images = list()
 
 
         # Work area size
@@ -52,7 +51,7 @@ class MainWindow:
 
         # Creating menu buttons
         self.open_button = Button(self.menu_frame, text="Ouvrir...", command=self.open_select_dialog, width=22)
-        self.save_button = Button(self.menu_frame, text="Enregistrer sous...", command=self.open_save_dialog, width=22)
+        self.save_button = Button(self.menu_frame, text="Enregistrer sous...", command=self.save_image, width=22)
         self.recognize_button = Button(self.menu_frame, text="Reconnaître la sélection", command=self.open_select_dialog, width=22)
         self.new_collage_button = Button(self.menu_frame, text="Nouveau Collage", command=self.open_select_dialog, width=22)
 
@@ -66,39 +65,41 @@ class MainWindow:
         self.recognize_button.grid(column=0, row=4, pady=5, rowspan=2, sticky=E)
         self.new_collage_button.grid(column=0, row=6, pady=5, rowspan=2)
 
+        ## TODO: REMOVE ##
+        self.load_image("bleh")
+        ## ##
+
         self.root.mainloop()
 
     def open_select_dialog(self):
-        print("button clicked")
         self.load_image(filedialog.askopenfilename(filetypes=self.filetypes))
 
-    def open_save_dialog(self):
-        print("button clicked")
-        self.save_image(filedialog.asksaveasfilename(confirmoverwrite=True, filetypes=self.config['filetypes']))
+    def save_image(self):
+        self.images[0].save_np_as_image(filedialog.asksaveasfilename(confirmoverwrite=True, filetypes=self.filetypes), self.rect.get_image_coordinates((self.images[0].origin_x, self.images[0].origin_y)), (self.rect.width, self.rect.height))
 
     def load_image(self, path, multiple=False):
         if path is not "":
             if multiple is True:
                 # TODO: implémenter le chargement d'images multiples pour le collage
-                self.canvas_elements.append(Image.open(path, "r"))
-                self.root.canvas_elements.append(ImageTk.PhotoImage(self.canvas_elements[0]))
+                print("Error, multiple image selection is not yet implemented")
             else:
-                self.canvas_elements = []
-                self.root.canvas_elements = []
-                numpy_image = misc.imread(path)
-                self.numpy_image = (numpy_image)
-                print(numpy_image.shape)
-                self.canvas_elements.append(Image.fromarray(numpy_image[0:10]))
-                self.root.canvas_elements.append(ImageTk.PhotoImage(self.canvas_elements[0]))
-        for pic in self.root.canvas_elements:
-            self.cv.create_image(50, 50, image=pic, anchor='nw')
+
+                ## TODO: REMOVE ##
+                path = "C:\\Users\\Jeremy.COMELLI\\Desktop\\Pingu.jpg"
+                ##
+
+                # Creating an image object
+                np_image = NumpyImage(path, self.root, self.cv, [0, 0])
+
+                # Image object is added to our list
+                self.images.append(np_image)
+
+            # Finally, every image is added onto the canvas
+            for image in self.images:
+                image.add_to_canvas()
 
         self.root.update_idletasks()
         self.root.update()
-
-    def save_image(self, path):
-        if path is not "":
-            self.pic.save(path)
 
     @staticmethod
     def close_window(event):
@@ -109,9 +110,42 @@ class MainWindow:
             exit()
 
 
+class NumpyImage:
+    def __init__(self, path, root, canvas, origin=[0, 0]):
+        self.root = root
+        self.cv = canvas
+        self.origin_x = origin[0]
+        self.origin_y = origin[1]
+        self.path = path
+        self.image_np = None
+        self.image_tk = None
+        self.root_id = 0
+
+        self.load()
+
+    def load(self):
+        self.image_np = misc.imread(self.path)
+        print(self.image_np.shape)
+        self.image_tk = ImageTk.PhotoImage(Image.fromarray(self.image_np))
+
+    def add_to_canvas(self):
+        self.root.canvas_elements.append(self.image_tk)
+        self.root_id = len(self.root.canvas_elements) - 1
+        self.cv.create_image(0, 0, image=self.image_tk, anchor='nw', tags=str(self.root_id))
+
+    def save_np_as_image(self, save_path, topleft, size):
+        save_width, save_height = size
+        save_origin_x, save_origin_y = topleft
+        print("Selection box Origin: x" + str(save_origin_x) + " y:" + str(save_origin_y))
+
+        saved_image = Image.fromarray(self.image_np[save_origin_y:save_height, save_origin_x:save_width])
+        saved_image.save(save_path)
+        print("Saving image")
+
+
 class RectTracker:
     ''' Created by ©Sunjay Varma on Mon, 27 Sep 2010 (MIT)
-        Heavily modified by Jeremy Comelli on 18.05.2018
+        Heavily modified by Jeremy Comelli
         Pasted from http://code.activestate.com/recipes/577409-python-tkinter-canvas-rectangle-selection-box/'''
 
     def __init__(self, canvas, root, conf):
@@ -159,29 +193,30 @@ class RectTracker:
 
     # This function is used to determine which side of the selection box is clicked on, by comparing mouse's XY to each side's XY
     def __get_mouse_focus(self, event):
-        if self.select_topleft[1] - 3 < event.y < self.select_topleft[1] + 4 and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width:
+        if self.select_topleft[1] - self.select_hitbox < event.y < self.select_topleft[1] + self.select_hitbox and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width:
             self.active_side = 0
+
             print("Top Side")
-        elif self.select_topleft[0] + self.width - 3 < event.x < self.select_topleft[0] + self.width + 4 and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height:
+        elif self.select_topleft[0] + self.width - self.select_hitbox < event.x < self.select_topleft[0] + self.width + self.select_hitbox and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height:
             self.active_side = 1
             print("Right Side")
-        elif self.select_topleft[1] + self.height - 3 < event.y < self.select_topleft[1] + self.height + 4 and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width:
+        elif self.select_topleft[1] + self.height - self.select_hitbox < event.y < self.select_topleft[1] + self.height + self.select_hitbox and self.select_topleft[0] < event.x < self.select_topleft[0] + self.width:
             self.active_side = 2
             print("Bottom Side")
-        elif self.select_topleft[0] - 3 < event.x < self.select_topleft[0] + 4 and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height:
+        elif self.select_topleft[0] - self.select_hitbox < event.x < self.select_topleft[0] + self.select_hitbox and self.select_topleft[1] < event.y < self.select_topleft[1] + self.height:
             self.active_side = 3
             print("Left Side")
-        elif self.width < 1 and self.select_topleft[1] - 3 < event.y < self.select_topleft[1] + 4 and self.select_topleft[0] + self.width < event.x < self.select_topleft[0]:
+        elif self.width < 1 and self.select_topleft[1] - self.select_hitbox < event.y < self.select_topleft[1] + self.select_hitbox and self.select_topleft[0] + self.width < event.x < self.select_topleft[0]:
             self.active_side = 0
             print("Top Side")
-        elif self.height < 1 and self.select_topleft[0] + self.width - 3 < event.x < self.select_topleft[0] + self.width + 4 and self.select_topleft[1] + self.height < event.y < self.select_topleft[1]:
+        elif self.height < 1 and self.select_topleft[0] + self.width - self.select_hitbox < event.x < self.select_topleft[0] + self.width + self.select_hitbox and self.select_topleft[1] + self.height < event.y < self.select_topleft[1]:
             self.active_side = 1
             print("Right Side")
 
-        elif self.width < 1 and self.select_topleft[1] + self.height - 3 < event.y < self.select_topleft[1] + self.height + 4 and self.select_topleft[0]+ self.width < event.x < self.select_topleft[0]:
+        elif self.width < 1 and self.select_topleft[1] + self.height - self.select_hitbox < event.y < self.select_topleft[1] + self.height + self.select_hitbox and self.select_topleft[0] + self.width < event.x < self.select_topleft[0]:
             self.active_side = 2
             print("Bottom Side")
-        elif self.height < 1 and self.select_topleft[0] - 3 < event.x < self.select_topleft[0] + 4 and self.select_topleft[1] + self.height < event.y < self.select_topleft[1]:
+        elif self.height < 1 and self.select_topleft[0] - self.select_hitbox < event.x < self.select_topleft[0] + self.select_hitbox and self.select_topleft[1] + self.height < event.y < self.select_topleft[1]:
             self.active_side = 3
             print("Left Side")
         else:
@@ -228,6 +263,12 @@ class RectTracker:
 
         # Code by ©Sunjay Varma
         x, y = None, None
+
+    def get_image_coordinates(self, image_origin):
+        image_x = self.select_topleft[0] - image_origin[0]
+        image_y = self.select_topleft[1] - image_origin[1]
+
+        return image_x, image_y
 
     def cool_design(self, event):
         global x, y
