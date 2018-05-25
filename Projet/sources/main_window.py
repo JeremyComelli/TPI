@@ -1,6 +1,8 @@
 from tkinter import *
+from tkinter import messagebox
 import tkinter.filedialog as filedialog
 from PIL import Image, ImageTk
+from sources import NeuralNet
 from random import shuffle
 from PIL import ImageGrab
 from scipy import misc
@@ -16,8 +18,10 @@ class MainWindow:
         # Accepted files for the program
         self.filetypes = [("Fichiers JPEG & PNG", ("*.jpg", "*.png"))]
 
+        Neural_interface = NeuralNet.NeuralNetwork()
+
         # Images which are displayed on the canvas are also saved as a numpy array, so we can manipulate them and use the array for NN processing
-        self.images = list()
+        self.image = None
 
 
         # Work area size
@@ -52,8 +56,8 @@ class MainWindow:
         # Creating menu buttons
         self.open_button = Button(self.menu_frame, text="Ouvrir...", command=self.open_select_dialog, width=22)
         self.save_button = Button(self.menu_frame, text="Enregistrer sous...", command=self.save_image, width=22)
-        self.recognize_button = Button(self.menu_frame, text="Reconnaître la sélection", command=self.open_select_dialog, width=22)
-        self.new_collage_button = Button(self.menu_frame, text="Nouveau Collage", command=self.open_select_dialog, width=22)
+        self.recognize_button = Button(self.menu_frame, text="Reconnaître la sélection", command=self.recognize_selection, width=22)
+        self.crop_button = Button(self.menu_frame, text="Recadrer", command=self.crop_selection, width=22)
 
         # Placing widgets on the window
         self.main_frame.grid(column=0, row=0)
@@ -63,7 +67,7 @@ class MainWindow:
         self.open_button.grid(column=0, row=0, pady=5, rowspan=2, sticky=W)
         self.save_button.grid(column=0, row=2, pady=5, rowspan=2, sticky=E)
         self.recognize_button.grid(column=0, row=4, pady=5, rowspan=2, sticky=E)
-        self.new_collage_button.grid(column=0, row=6, pady=5, rowspan=2)
+        self.crop_button.grid(column=0, row=6, pady=5, rowspan=2)
 
         ## TODO: REMOVE ##
         self.load_image("bleh")
@@ -71,11 +75,28 @@ class MainWindow:
 
         self.root.mainloop()
 
+    def recognize_selection(self):
+        messagebox.showinfo("Réseau Neuronal non disponible")
+
+    def crop_selection(self):
+        if self.rect.width is not 0 and self.rect.height is not 0:
+            self.image.crop(self.image.save_np_as_image(self.rect.get_select_origin((self.image.origin_x, self.image.origin_y)), (self.rect.width, self.rect.height)))
+            self.cv.delete(self.image)
+            self.image.add_to_canvas()
+            self.rect.delete()
+        else:
+            messagebox.showinfo("Impossible de recadrer", "Veuillez sélectionner une zone à recadrer")
+
     def open_select_dialog(self):
         self.load_image(filedialog.askopenfilename(filetypes=self.filetypes))
 
     def save_image(self):
-        self.images[0].save_np_as_image(filedialog.asksaveasfilename(confirmoverwrite=True, filetypes=self.filetypes), self.rect.get_select_origin((self.images[0].origin_x, self.images[0].origin_y)), (self.rect.width, self.rect.height))
+        path = filedialog.asksaveasfilename(confirmoverwrite=True, filetypes=self.filetypes)
+        if path is not "":
+            if self.rect.width is not 0 and self.rect.height is not 0:
+                self.image.save_np_as_image(self.rect.get_select_origin((self.image.origin_x, self.image.origin_y)), (self.rect.width, self.rect.height), path)
+            else:
+                self.image.save_np_as_image([self.image.origin_x, self.image.origin_y], path)
 
     def load_image(self, path, multiple=False):
         if path is not "":
@@ -92,11 +113,10 @@ class MainWindow:
                 np_image = NumpyImage(path, self.root, self.cv)
 
                 # Image object is added to our list
-                self.images.append(np_image)
+                self.image = np_image
 
             # Finally, every image is added onto the canvas
-            for image in self.images:
-                image.add_to_canvas()
+            self.image.add_to_canvas()
 
         self.root.update_idletasks()
         self.root.update()
@@ -118,30 +138,39 @@ class NumpyImage:
         # Here we add a small offset, because for some reason the canvas starts outside of the frame
         self.origin_x = origin[0] + 2
         self.origin_y = origin[1] + 2
+        self.width, self.height = 0, 0
 
         self.path = path
         self.image_np = None
         self.image_tk = None
-        self.root_id = 0
 
         self.load()
 
+    def crop(self, new_np):
+        print("Cropping stuff")
+        self.image_tk = ImageTk.PhotoImage(Image.fromarray(new_np))
+        self.image_np = new_np
+        self.add_to_canvas()
+
     def load(self):
         self.image_np = misc.imread(self.path)
-        print(self.image_np.shape)
         self.image_tk = ImageTk.PhotoImage(Image.fromarray(self.image_np))
+        self.width, self.height = self.image_tk.width(), self.image_tk.height()
+        print("PhotoImage: " + str(self.image_tk.width()) + ", " + str(self.image_tk.height()))
+        print("width, height: " + str(self.width) + ", " + str(self.height))
+
 
     def add_to_canvas(self):
-        self.root.canvas_elements.append(self.image_tk)
-        self.root_id = len(self.root.canvas_elements) - 1
-        self.cv.create_image(self.origin_x, self.origin_y, image=self.image_tk, anchor='nw', tags=str(self.root_id))
+        self.cv.delete(self.image_tk)
+        self.cv.create_image(self.origin_x, self.origin_y, image=self.image_tk, anchor='nw')
 
-    def save_np_as_image(self, save_path, topleft, size):
+    def save_np_as_image(self, topleft, size, save_path=-1):
+        if size is None:
+            print("size is self")
+            size = self.width, self.height
         save_width, save_height = size
+        print(str(save_width) + ", " + str(save_height))
         save_origin_x, save_origin_y = topleft
-
-        print("--Topleft X: " + str(save_origin_x) + ", Y: " + str(save_origin_y))
-        print("--Width: " + str(save_width) + ", Height: " + str(save_height))
 
         if save_width < 0:
             save_origin_x += save_width
@@ -155,14 +184,10 @@ class NumpyImage:
         else:
             save_height += save_origin_y
 
-
-
-        print("--Topleft X: " + str(save_origin_x) + ", Y: " + str(save_origin_y))
-        print("--Width: " + str(save_width) + ", Height: " + str(save_height))
-
-        saved_image = Image.fromarray(self.image_np[save_origin_y:save_height:1, save_origin_x:save_width:1])
-        saved_image.save(save_path)
-        print("Saving image")
+        if save_path is not -1:
+            Image.fromarray(self.image_np[save_origin_y:save_height:1, save_origin_x:save_width:1]).save(save_path)
+        else:
+            return self.image_np[save_origin_y:save_height:1, save_origin_x:save_width:1]
 
 
 class RectTracker:
@@ -175,9 +200,11 @@ class RectTracker:
         self.config = conf
         self.select_hitbox = int(self.config['select_hitbox'])
 
-        self.select_topleft = [100, 100]
+        self.select_topleft = [-1, -1]
         self.start = self.select_topleft
-        self.height, self.width = 200, 100
+        self.height, self.width = 0, 0
+        self.wa_width, self.wa_height = str.split(self.config['work_area_dimensions'], ",")
+        self.wa_height, self.wa_width = int(self.wa_height), int(self.wa_width)
         self.lastx, self.lasty = None, None
         self.active_side = None
         self.canvas = canvas
@@ -240,7 +267,7 @@ class RectTracker:
         elif self.height < 1 and self.select_topleft[0] - self.select_hitbox < event.x < self.select_topleft[0] + self.select_hitbox and self.select_topleft[1] + self.height < event.y < self.select_topleft[1]:
             self.active_side = 3
             print("Left Side")
-        else:
+        elif event.x > 0 and event.y > 0:
             self.active_side = None
             print("No Active side, creating new Rectangle")
             self.canvas.delete(self.item)
@@ -261,6 +288,13 @@ class RectTracker:
         elif self.active_side is 1 or self.active_side is 3:
             change = delta_x
 
+        if event.x > self.wa_width or event.y > self.wa_width:
+            change = 0
+        if event.x > self.wa_width:
+            delta_x = 0
+        if event.y > self.wa_height:
+            delta_y = 0
+
         self.canvas.delete(self.item)
         if self.active_side is not None:
             self.item = self.draw(event, change)
@@ -276,7 +310,7 @@ class RectTracker:
         # Makes the rectangle disappear once mouse1 is released
         self.start_x, self.start_y = None, None
 
-        # TODO: bouger ça dans une méthode dédiée
+        # TODO: bouger ça dans une méthode dédiée a bouger dans une méthode dédiée
         # To save the image, we use PIL to get a screenshot of the specified coordinates
         # We also have to add the window position, and the number of pixels on the side of the window
         # This is kind of a workaround, and it won't work if the window border size changes, like on W10 or any other os really
@@ -290,6 +324,10 @@ class RectTracker:
         image_y = self.select_topleft[1] - image_origin[1]
 
         return image_x, image_y
+
+    def delete(self):
+        self.canvas.delete(self.item)
+        self.width, self.height, self.select_topleft = 0, 0, [0, 0]
 
     def cool_design(self, event):
         global x, y
