@@ -26,8 +26,8 @@
       <file leaf-file-name="main_window.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/sources/main_window.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="204">
-              <caret line="20" column="51" selection-start-line="20" selection-start-column="51" selection-end-line="20" selection-end-column="51" />
+            <state relative-caret-position="456">
+              <caret line="343" column="61" lean-forward="true" selection-start-line="343" selection-start-column="61" selection-end-line="343" selection-end-column="61" />
               <folding>
                 <element signature="e#0#21#0" expanded="true" />
               </folding>
@@ -38,10 +38,10 @@
       <file leaf-file-name="NeuralNet.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/sources/NeuralNet.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="136">
-              <caret line="8" column="19" selection-start-line="8" selection-start-column="19" selection-end-line="8" selection-end-column="19" />
+            <state relative-caret-position="170">
+              <caret line="73" column="1" lean-forward="true" selection-start-line="73" selection-start-column="1" selection-end-line="73" selection-end-column="1" />
               <folding>
-                <element signature="e#0#23#0" expanded="true" />
+                <element signature="e#0#11#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -123,13 +123,14 @@
       <list>
         <option value="$PROJECT_DIR$/App.py" />
         <option value="$PROJECT_DIR$/config.ini" />
-        <option value="$PROJECT_DIR$/sources/main_window.py" />
         <option value="$PROJECT_DIR$/sources/NeuralNet.py" />
+        <option value="$PROJECT_DIR$/sources/main_window.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="width" value="1080" />
+    <option name="x" value="960" />
+    <option name="width" value="960" />
     <option name="height" value="1040" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
@@ -224,11 +225,11 @@
     <configuration />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="0" width="1080" height="1040" extended-state="0" />
+    <frame x="960" y="0" width="960" height="1040" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.45489442" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.335177" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.02603037" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.38938054" />
       <window_info anchor="bottom" id="Version Control" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Python Console" order="8" weight="0.32934782" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
@@ -628,16 +629,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/sources/main_window.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="204">
-          <caret line="20" column="51" selection-start-line="20" selection-start-column="51" selection-end-line="20" selection-end-column="51" />
-          <folding>
-            <element signature="e#0#21#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/config.ini">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="119">
@@ -645,12 +636,22 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/sources/main_window.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="456">
+          <caret line="343" column="61" lean-forward="true" selection-start-line="343" selection-start-column="61" selection-end-line="343" selection-end-column="61" />
+          <folding>
+            <element signature="e#0#21#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/sources/NeuralNet.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="136">
-          <caret line="8" column="19" selection-start-line="8" selection-start-column="19" selection-end-line="8" selection-end-column="19" />
+        <state relative-caret-position="170">
+          <caret line="73" column="1" lean-forward="true" selection-start-line="73" selection-start-column="1" selection-end-line="73" selection-end-column="1" />
           <folding>
-            <element signature="e#0#23#0" expanded="true" />
+            <element signature="e#0#11#0" expanded="true" />
           </folding>
         </state>
       </provider>
