@@ -2,7 +2,6 @@ from tkinter import *
 from tkinter import messagebox
 import tkinter.filedialog as filedialog
 from PIL import Image, ImageTk
-from sources import NeuralNet
 from random import shuffle
 from PIL import ImageGrab
 from scipy import misc
@@ -18,7 +17,7 @@ class MainWindow:
         # Accepted files for the program
         self.filetypes = [("Fichiers JPEG & PNG", ("*.jpg", "*.png"))]
 
-        Neural_interface = NeuralNet.NeuralNetwork()
+
 
         # Images which are displayed on the canvas are also saved as a numpy array, so we can manipulate them and use the array for NN processing
         self.image = None
