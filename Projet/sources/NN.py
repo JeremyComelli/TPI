@@ -67,17 +67,33 @@ class NeuralInterface:
 
         train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
         tf.global_variables_initializer().run()
-        for _ in range(1000):
-            batch = dataset.train.next_batch(100)
-            train_step.run(feed_dict={x: batch[0], y_: batch[1]})
-            # self.session.run(train_step, feed_dict={x: batch_xs, y_: batch_ys})
+
+        keep_prob = tf.placeholder(tf.float32)
+        h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
+
+        W_fc2 = self.weight_variable([1024, 10])
+        b_fc2 = self.bias_variable([10])
+
+        y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
+
+        cross_entropy = tf.reduce_mean(
+        tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
+        train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+        correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        self.session.run(tf.global_variables_initializer())
+        for i in range(20000):
+            batch = dataset.train.next_batch(50)
+            if i % 100 == 0:
+                train_accuracy = accuracy.eval(feed_dict={x:batch[0], y_: batch[1], keep_prob: 1.0})
+                print("step %d, training accuracy %g"%(i, train_accuracy))
+            train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+
+        print("test accuracy %g"%accuracy.eval(feed_dict={x: dataset.test.images, y_: dataset.test.labels, keep_prob: 1.0}))
 
         correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
 
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
-        print(self.session.run(accuracy, feed_dict={x: dataset.test.images, y_: dataset.test.labels}))
-
 
 if __name__ == '__main__':
     print("Running standalone")
