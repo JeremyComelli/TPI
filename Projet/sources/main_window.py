@@ -1,4 +1,5 @@
 from tkinter import *
+import csv
 from tkinter import messagebox
 import tkinter.filedialog as filedialog
 from PIL import Image, ImageTk
@@ -14,7 +15,7 @@ class MainWindow:
         self.config = conf
 
         self.window_name = self.config['window_caption']
-        self.ml_window_name = self.config['ml_window_caption']
+        self.ml_root_name = self.config['ml_window_caption']
         self.window_size = self.config['window_size']
 
         # Accepted files for the program
@@ -22,7 +23,7 @@ class MainWindow:
 
         # ML settings
         self.ml_algorithm = self.config['ml_algorithm_path']
-        self.ml_window_size = self.config['ml_window_size']
+        self.ml_root_size = self.config['ml_window_size']
 
         # Images which are displayed on the canvas are also saved as a numpy array, so we can manipulate them and use the array for NN processing
         self.image = None
@@ -41,6 +42,8 @@ class MainWindow:
         self.root.canvas_elements = list()
         # Main window has focus by default
         self.root.focus_set()
+
+        self.ml_root = None
 
         # Binding esc key to a function that halts the program, disabled for release
         if bool(self.config['devmode']):
@@ -86,24 +89,24 @@ class MainWindow:
         self.root.mainloop()
 
     def open_ml_dialog(self):
-        window = Tk()
-        window.resizable(False, False)
-        window.geometry(self.ml_window_size)
-        window.title(self.ml_window_name)
+        self.ml_root = Tk()
+        self.ml_root.resizable(False, False)
+        self.ml_root.geometry(self.ml_root_size)
+        self.ml_root.title(self.ml_root_name)
 
-        open_multiple_button = Button(window, text="Créer un dataset...", command=self.select_dataset, width=22)
+        open_multiple_button = Button(self.ml_root, text="Créer un dataset...", command=self.select_dataset, width=22)
 
         # TODO: créer une fonction de création d'algorithme
-        create_network_button = Button(window, text="Nouveau Réseau", command=self.select_dataset, width=22)
+        create_network_button = Button(self.ml_root, text="Nouveau Réseau", command=self.select_dataset, width=22)
 
         # TODO: Créer une fonction d'entraînement de l'algorithme (ouvrir le dataset, ...)
-        train_network_button = Button(window, text="Entraîner un Réseau", command=self.select_dataset, width=22)
+        train_network_button = Button(self.ml_root, text="Entraîner un Réseau", command=self.select_dataset, width=22)
 
         # TODO: Créer une fonction permettant de tester l'algorithme
-        test_network_button = Button(window, text="Tester un Réseau", command=self.select_dataset, width=22)
+        test_network_button = Button(self.ml_root, text="Tester un Réseau", command=self.select_dataset, width=22)
 
         # TODO: mettre en place la sélection d'algorithme par défaut
-        default_network_button = Button(window, text="Sélectionner l'algorithme à utiliser", command=self.load_algorithm, width=22)
+        default_network_button = Button(self.ml_root, text="Sélectionner l'algorithme à utiliser", command=self.load_algorithm, width=22)
 
         open_multiple_button.grid(column=0, row=0, pady=5, padx=10, ipadx=15)
         create_network_button.grid(column=0, row=1, pady=5, padx=10, ipadx=15)
@@ -111,7 +114,7 @@ class MainWindow:
         test_network_button.grid(column=0, row=3, pady=5, padx=10, ipadx=15)
         default_network_button.grid(column=0, row=3, pady=5, padx=10, ipadx=15)
 
-        window.bind("<Escape>", self.close_window)
+        self.ml_root.bind("<Escape>", self.close_window)
 
     def load_algorithm(self):
         print("Sélection de l'alorithme par défaut")
@@ -132,6 +135,8 @@ class MainWindow:
         self.load_image(filedialog.askopenfilename(filetypes=self.filetypes, title="Sélectionnez un fichier à charger", initialdir=os.path.expanduser("~/Desktop")))
 
     def select_dataset(self):
+        self.ml_root.lift()
+
         path = filedialog.askopenfilenames(filetypes=self.filetypes, title="Sélectionnez des fichiers à charger", initialdir=os.path.expanduser("~/Desktop"))
 
         if path is not "":
@@ -141,6 +146,18 @@ class MainWindow:
         path = filedialog.askdirectory(title="Sélectionnez un dossier dans lequel sauvegarder votre dataset")
         for image in images:
             shutil.copy(image, path)
+
+        csvfile = open(path + "/data.csv", 'w')
+        fieldnames = ['path', 'label']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for image in images:
+            print(image.split("/")[len(image.split("/"))-1])
+            writer.writerow({'path': path + image.split("/")[len(image.split("/"))-1], 'label': 'labelvalue'})
+        csvfile.close()
+
+        self.ml_root.focus_set()
+
 
     def save_image(self):
         path = filedialog.asksaveasfilename(confirmoverwrite=True, filetypes=self.filetypes)
