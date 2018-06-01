@@ -2,6 +2,8 @@ from tkinter import *
 from tkinter import messagebox
 import tkinter.filedialog as filedialog
 from PIL import Image, ImageTk
+import shutil
+import os
 from random import shuffle
 from PIL import ImageGrab
 from scipy import misc
@@ -11,17 +13,19 @@ class MainWindow:
     def __init__(self, conf):
         self.config = conf
 
-        self.window_name = self.config['window_name']
+        self.window_name = self.config['window_caption']
+        self.ml_window_name = self.config['ml_window_caption']
         self.window_size = self.config['window_size']
 
         # Accepted files for the program
         self.filetypes = [("Fichiers JPEG & PNG", ("*.jpg", "*.png"))]
 
-
+        # ML settings
+        self.ml_algorithm = self.config['ml_algorithm_path']
+        self.ml_window_size = self.config['ml_window_size']
 
         # Images which are displayed on the canvas are also saved as a numpy array, so we can manipulate them and use the array for NN processing
         self.image = None
-
 
         # Work area size
         self.wa_width, self.wa_height = str.split(self.config['work_area_dimensions'], ",")
@@ -46,6 +50,7 @@ class MainWindow:
         # TODO: pour l'instant, la fenêtre n'est pas resizable. Si elle le devient, il faudra trouver un moyen de faire marcher tout ça
         self.main_frame = Frame(self.root, width=400, bg="#8a0be5")
         self.menu_frame = Frame(self.root, bg="#48f442")
+        self.ml_menu_frame = Frame(self.root, bg="#0dba38")
         self.cv = Canvas(self.main_frame, bg="#4286f4", height=self.wa_height, width=str(int(self.wa_width) - int(self.menu_width)))
 
         # Selection box
@@ -58,21 +63,58 @@ class MainWindow:
         self.recognize_button = Button(self.menu_frame, text="Reconnaître la sélection", command=self.recognize_selection, width=22)
         self.crop_button = Button(self.menu_frame, text="Recadrer", command=self.crop_selection, width=22)
 
+        # Ml options button
+        self.ml_options_button = Button(self.ml_menu_frame, text="Options du Réseau Neuronal...", command=self.open_ml_dialog, width=22)
+
         # Placing widgets on the window
         self.main_frame.grid(column=0, row=0)
-        self.menu_frame.grid(column=1, row=0, columnspan=2, ipadx=20, ipady=20, sticky=N)
-        self.cv.grid(column=0, row=0)
+        self.menu_frame.grid(column=1, row=0, columnspan=2, ipady=5, sticky=N, padx=2)
+        self.ml_menu_frame.grid(column=1, row=0, sticky=N, pady=150, padx=2)
+        self.cv.grid(column=0, row=0, rowspan=6)
 
-        self.open_button.grid(column=0, row=0, pady=5, rowspan=2, sticky=W)
-        self.save_button.grid(column=0, row=2, pady=5, rowspan=2, sticky=E)
-        self.recognize_button.grid(column=0, row=4, pady=5, rowspan=2, sticky=E)
-        self.crop_button.grid(column=0, row=6, pady=5, rowspan=2)
+        self.open_button.grid(column=0, row=0, pady=5, padx=10, rowspan=2, sticky=W)
+        self.save_button.grid(column=0, row=2, pady=5, padx=10, rowspan=2, sticky=E)
+        self.recognize_button.grid(column=0, row=4, pady=5, padx=10, rowspan=2, sticky=E)
+        self.crop_button.grid(column=0, row=6, pady=5, padx=10, rowspan=2)
+
+        self.ml_options_button.grid(column=0, row=0, pady=10, padx=10)
 
         ## TODO: REMOVE ##
         self.load_image("bleh")
         ## ##
 
         self.root.mainloop()
+
+    def open_ml_dialog(self):
+        window = Tk()
+        window.resizable(False, False)
+        window.geometry(self.ml_window_size)
+        window.title(self.ml_window_name)
+
+        open_multiple_button = Button(window, text="Créer un dataset...", command=self.select_dataset, width=22)
+
+        # TODO: créer une fonction de création d'algorithme
+        create_network_button = Button(window, text="Nouveau Réseau", command=self.select_dataset, width=22)
+
+        # TODO: Créer une fonction d'entraînement de l'algorithme (ouvrir le dataset, ...)
+        train_network_button = Button(window, text="Entraîner un Réseau", command=self.select_dataset, width=22)
+
+        # TODO: Créer une fonction permettant de tester l'algorithme
+        test_network_button = Button(window, text="Tester un Réseau", command=self.select_dataset, width=22)
+
+        # TODO: mettre en place la sélection d'algorithme par défaut
+        default_network_button = Button(window, text="Sélectionner l'algorithme à utiliser", command=self.load_algorithm, width=22)
+
+        open_multiple_button.grid(column=0, row=0, pady=5, padx=10, ipadx=15)
+        create_network_button.grid(column=0, row=1, pady=5, padx=10, ipadx=15)
+        train_network_button.grid(column=0, row=2, pady=5, padx=10, ipadx=15)
+        test_network_button.grid(column=0, row=3, pady=5, padx=10, ipadx=15)
+        default_network_button.grid(column=0, row=3, pady=5, padx=10, ipadx=15)
+
+        window.bind("<Escape>", self.close_window)
+
+    def load_algorithm(self):
+        print("Sélection de l'alorithme par défaut")
 
     def recognize_selection(self):
         messagebox.showinfo("Réseau Neuronal non disponible")
@@ -87,7 +129,18 @@ class MainWindow:
             messagebox.showinfo("Impossible de recadrer", "Veuillez sélectionner une zone à recadrer")
 
     def open_select_dialog(self):
-        self.load_image(filedialog.askopenfilename(filetypes=self.filetypes))
+        self.load_image(filedialog.askopenfilename(filetypes=self.filetypes, title="Sélectionnez un fichier à charger", initialdir=os.path.expanduser("~/Desktop")))
+
+    def select_dataset(self):
+        path = filedialog.askopenfilenames(filetypes=self.filetypes, title="Sélectionnez des fichiers à charger", initialdir=os.path.expanduser("~/Desktop"))
+
+        if path is not "":
+            self.save_dataset(path)
+
+    def save_dataset(self, images):
+        path = filedialog.askdirectory(title="Sélectionnez un dossier dans lequel sauvegarder votre dataset")
+        for image in images:
+            shutil.copy(image, path)
 
     def save_image(self):
         path = filedialog.asksaveasfilename(confirmoverwrite=True, filetypes=self.filetypes)
@@ -103,7 +156,6 @@ class MainWindow:
                 # TODO: implémenter le chargement d'images multiples pour le collage
                 print("Error, multiple image selection is not yet implemented")
             else:
-
                 ## TODO: REMOVE ##
                 path = "C:\\Users\\Jeremy.COMELLI\\Desktop\\Pingu.jpg"
                 ##
@@ -308,15 +360,7 @@ class RectTracker:
     def __stop(self, event):
         # Makes the rectangle disappear once mouse1 is released
         self.start_x, self.start_y = None, None
-
-        # TODO: bouger ça dans une méthode dédiée a bouger dans une méthode dédiée
-        # To save the image, we use PIL to get a screenshot of the specified coordinates
-        # We also have to add the window position, and the number of pixels on the side of the window
-        # This is kind of a workaround, and it won't work if the window border size changes, like on W10 or any other os really
-        # ImageGrab.grab().crop((self.root.winfo_x() + self.select_start[0] + 9, self.root.winfo_y() + self.select_start[1] + 31, self.root.winfo_x() + self.select_end[0] + 7, self.root.winfo_y() + self.select_end[1] + 29)).save("C:\\Users\\Jeremy.COMELLI\\Desktop\\test.png")
-
         # Code by ©Sunjay Varma
-        x, y = None, None
 
     def get_select_origin(self, image_origin):
         image_x = self.select_topleft[0] - image_origin[0]
