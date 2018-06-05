@@ -7,6 +7,7 @@ import shutil
 import os
 from random import shuffle
 from PIL import ImageGrab
+import cv2
 from scipy import misc
 import numpy
 
@@ -56,8 +57,17 @@ class MainWindow:
         self.ml_menu_frame = Frame(self.root, bg="#0dba38")
         self.cv = Canvas(self.main_frame, bg="#4286f4", height=self.wa_height, width=str(int(self.wa_width) - int(self.menu_width)))
 
+        self.width_label_textvar = StringVar()
+        self.height_label_textvar = StringVar()
+
+        # Width/Height labels
+        self.width_label = Label(self.menu_frame, text="Largeur:", width=15)
+        self.height_label = Label(self.menu_frame, text="Hauteur:", width=15)
+        self.width_label_value = Label(self.menu_frame, textvariable=self.width_label_textvar, width=7, bg="#e2aaaa")
+        self.height_label_value = Label(self.menu_frame, textvariable=self.height_label_textvar, width=7, bg="#e2aaaa")
+
         # Selection box
-        self.rect = RectTracker(self.cv, self.root, self.config)
+        self.rect = RectTracker(self.cv, self.root, self.config, self.width_label_textvar, self.height_label_textvar, self.width_label_value, self.height_label_value)
         self.select_start = None
 
         # Creating menu buttons
@@ -66,19 +76,28 @@ class MainWindow:
         self.recognize_button = Button(self.menu_frame, text="Reconnaître la sélection", command=self.recognize_selection, width=22)
         self.crop_button = Button(self.menu_frame, text="Recadrer", command=self.crop_selection, width=22)
 
+        self.width_label_textvar.set("0")
+        self.height_label_textvar.set("0")
+
+
+
         # Ml options button
         self.ml_options_button = Button(self.ml_menu_frame, text="Options du Réseau Neuronal...", command=self.open_ml_dialog, width=22)
 
         # Placing widgets on the window
         self.main_frame.grid(column=0, row=0)
         self.menu_frame.grid(column=1, row=0, columnspan=2, ipady=5, sticky=N, padx=2)
-        self.ml_menu_frame.grid(column=1, row=0, sticky=N, pady=150, padx=2)
+        self.ml_menu_frame.grid(column=1, row=0, pady=200, padx=2, sticky=N)
         self.cv.grid(column=0, row=0, rowspan=6)
 
-        self.open_button.grid(column=0, row=0, pady=5, padx=10, rowspan=2, sticky=W)
-        self.save_button.grid(column=0, row=2, pady=5, padx=10, rowspan=2, sticky=E)
-        self.recognize_button.grid(column=0, row=4, pady=5, padx=10, rowspan=2, sticky=E)
-        self.crop_button.grid(column=0, row=6, pady=5, padx=10, rowspan=2)
+        self.open_button.grid(column=0, row=0, pady=5, padx=10, rowspan=2, sticky=W, columnspan=2)
+        self.save_button.grid(column=0, row=2, pady=5, padx=10, rowspan=2, sticky=E, columnspan=2)
+        self.recognize_button.grid(column=0, row=4, pady=5, padx=10, rowspan=2, sticky=E, columnspan=2)
+        self.crop_button.grid(column=0, row=6, pady=5, padx=10, rowspan=2, columnspan=2)
+        self.width_label.grid(column=0, row=8)
+        self.height_label.grid(column=0, row=10)
+        self.width_label_value.grid(column=1, row=8)
+        self.height_label_value.grid(column=1, row=10)
 
         self.ml_options_button.grid(column=0, row=0, pady=10, padx=10)
 
@@ -147,13 +166,25 @@ class MainWindow:
         for image in images:
             shutil.copy(image, path)
 
+        dataset_dialog = Tk()
+        dataset_dialog.geometry("200x200")
+        dataset_canvas = Canvas(dataset_dialog, bg="#1d69e2", width=100, height=200)
+
+        entry_label = Label(text="Valeur de l'image")
+        entry_label.pack(side=RIGHT)
+
+        entry = Entry()
+        entry.pack(side=TOP)
+
+        dataset_canvas.pack(side=LEFT)
         csvfile = open(path + "/data.csv", 'w')
         fieldnames = ['path', 'label']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-        for image in images:
-            print(image.split("/")[len(image.split("/"))-1])
-            writer.writerow({'path': path + image.split("/")[len(image.split("/"))-1], 'label': 'labelvalue'})
+
+        # def save_labels(entries, id, label):
+            # writer.writerow({'path': path + image.split("/")[len(image.split("/"))-1], 'label': label})
+
         csvfile.close()
 
         self.ml_root.focus_set()
@@ -174,11 +205,12 @@ class MainWindow:
                 print("Error, multiple image selection is not yet implemented")
             else:
                 ## TODO: REMOVE ##
-                path = "C:\\Users\\Jeremy.COMELLI\\Desktop\\Pingu.jpg"
+                if path is "bleh":
+                    path = "C:\\Users\\Jeremy.COMELLI\\Desktop\\Pingu.jpg"
                 ##
 
                 # Creating an image object
-                np_image = NumpyImage(path, self.root, self.cv)
+                np_image = NumpyImage(path, self.root, self.cv, self.config)
 
                 # Image object is added to our list
                 self.image = np_image
@@ -199,9 +231,11 @@ class MainWindow:
 
 
 class NumpyImage:
-    def __init__(self, path, root, canvas, origin=[0, 0]):
+    def __init__(self, path, root, canvas, conf, origin=[0, 0]):
         self.root = root
         self.cv = canvas
+        self.config = conf
+        self.cv_width, self.cv_height = list(map(int, self.config['work_area_dimensions'].split(",")))
 
         # Here we add a small offset, because for some reason the canvas starts outside of the frame
         self.origin_x = origin[0] + 2
@@ -214,28 +248,34 @@ class NumpyImage:
 
         self.load()
 
+    # Crops the image according to the coordinates of the selectionbox
     def crop(self, new_np):
-        print("Cropping stuff")
         self.image_tk = ImageTk.PhotoImage(Image.fromarray(new_np))
         self.image_np = new_np
         self.add_to_canvas()
 
+    # Loads the image from the specified path
     def load(self):
         self.image_np = misc.imread(self.path)
         self.image_tk = ImageTk.PhotoImage(Image.fromarray(self.image_np))
         self.width, self.height = self.image_tk.width(), self.image_tk.height()
-        print("PhotoImage: " + str(self.image_tk.width()) + ", " + str(self.image_tk.height()))
-        print("width, height: " + str(self.width) + ", " + str(self.height))
+        if self.width > self.cv_width or self.height > self.cv_height:
+            messagebox.showinfo("Erreur de sélection", "Erreur, la résolution de l'image dépasse 800x600, elle sera donc étirée")
+            self.image_np = cv2.resize(self.image_np, dsize=(self.cv_width, self.cv_height))
+            self.image_tk = ImageTk.PhotoImage(Image.fromarray(self.image_np))
+            self.width, self.height = self.image_tk.width(), self.image_tk.height()
 
 
+    # Replaces current picture with new one on the canvas
     def add_to_canvas(self):
         self.cv.delete(self.image_tk)
         self.cv.create_image(self.origin_x, self.origin_y, image=self.image_tk, anchor='nw')
 
-    def save_np_as_image(self, topleft, size, save_path=-1):
+    # Creates a new file, where we want to save the current image (possibly cropped)
+    def save_np_as_image(self, topleft, size, save_path="-1"):
         if size is None:
-            print("size is self")
             size = self.width, self.height
+
         save_width, save_height = size
         print(str(save_width) + ", " + str(save_height))
         save_origin_x, save_origin_y = topleft
@@ -252,8 +292,15 @@ class NumpyImage:
         else:
             save_height += save_origin_y
 
-        if save_path is not -1:
-            Image.fromarray(self.image_np[save_origin_y:save_height:1, save_origin_x:save_width:1]).save(save_path)
+        print(save_height)
+        print(save_width)
+        if save_path is not "-1":
+            if ".png" not in save_path and ".jpg" not in save_path:
+                save_path = save_path + ".png"
+            from_arr = self.image_np[save_origin_y:save_height:1, save_origin_x:save_width:1]
+            from_arr = Image.fromarray(cv2.resize(from_arr, dsize=(30, 60), interpolation=cv2.INTER_CUBIC))
+            from_arr.save(save_path)
+
         else:
             return self.image_np[save_origin_y:save_height:1, save_origin_x:save_width:1]
 
@@ -263,10 +310,18 @@ class RectTracker:
         Heavily modified by Jeremy Comelli
         Pasted from http://code.activestate.com/recipes/577409-python-tkinter-canvas-rectangle-selection-box/'''
 
-    def __init__(self, canvas, root, conf):
+    def __init__(self, canvas, root, conf, label_width_textvar, label_height_textvar, label_width_value, label_height_value):
         self.root = root
         self.config = conf
         self.select_hitbox = int(self.config['select_hitbox'])
+
+        self.proportions_flag = False
+
+        self.label_width_value = label_width_value
+        self.label_height_value = label_height_value
+
+        self.width_textvar = label_width_textvar
+        self.height_textvar = label_height_textvar
 
         self.select_topleft = [-1, -1]
         self.start = self.select_topleft
@@ -373,6 +428,20 @@ class RectTracker:
         self.start_x, self.start_y = event.x, event.y
         # self._command(self.start, (event.x, event.y))
         self.select_end = (event.x, event.y)
+
+        self.width_textvar.set(abs(self.width))
+        self.height_textvar.set(abs(self.height))
+
+        # Proportions labels change colors if the image can be resized without being deformed
+        if (2 * self.width) - int(self.config['select_proportions_hitbox']) < self.height < (2 * self.width) + int(self.config['select_proportions_hitbox']):
+            if self.proportions_flag is False:
+                self.label_height_value.configure(bg="#23db0f")
+                self.label_width_value.configure(bg="#23db0f")
+                self.proportions_flag = True
+        elif self.proportions_flag is True:
+            self.label_height_value.configure(bg="#e2aaaa")
+            self.label_width_value.configure(bg="#e2aaaa")
+            self.proportions_flag = False
 
     def __stop(self, event):
         # Makes the rectangle disappear once mouse1 is released
