@@ -103,3 +103,7 @@ ENV/
 *.xml
 Dataset/Originaux - digits/data.csv
 .idea/inspectionProfiles/Project_Default.xml
+.idea/TPI.iml
+.idea/workspace.xml
+*.xml
+Dataset/test2/data.csv

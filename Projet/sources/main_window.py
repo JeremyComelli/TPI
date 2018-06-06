@@ -1,5 +1,6 @@
 from tkinter import *
-from sources.NN import NeuralInterface
+# TODO: checker que ça fout pas la merde
+import NN
 import csv
 from tkinter import messagebox
 import tkinter.filedialog as filedialog
@@ -28,7 +29,7 @@ class MainWindow:
         self.ml_algorithm = self.config['ml_algorithm_path']
         self.ml_root_size = self.config['ml_window_size']
 
-<<<<<<< HEAD
+
         # Dataset dialogue variables
         self.dataset_dialog = None
         self.dataset_current_step = 0
@@ -37,7 +38,7 @@ class MainWindow:
         self.dataset_images = list()
         self.dataset_sources_path = list()
         self.dataset_label_entry = None
-=======
+
         # dataset variables
         self.training_set = list()
         self.training_labels = None
@@ -47,8 +48,7 @@ class MainWindow:
 
         # Neural Interface
         self.sample_width, self.sample_height = list(map(int, self.config['default_sample_size'].split(",")))
-        self.NN_interface = NeuralInterface(nn_conf, self.sample_width, self.sample_height)
->>>>>>> fcf95143b3e71cdb0f4693627041c671b5e32402
+        self.NN_interface = NN.NeuralInterface(nn_conf, self.sample_width, self.sample_height)
 
         # Images which are displayed on the canvas are also saved as a numpy array, so we can manipulate them and use the array for NN processing
         self.image = None
@@ -75,15 +75,10 @@ class MainWindow:
         # Instantiating widgets
         # TODO: pour l'instant, la fenêtre n'est pas resizable. Si elle le devient, il faudra trouver un moyen de faire marcher tout ça
         self.main_frame = Frame(self.root, width=400, bg="#8a0be5")
-<<<<<<< HEAD
+
         self.menu_frame = Frame(self.root, bg="#aeb3ba")
         self.ml_menu_frame = Frame(self.root, bg="#aeb3ba")
         self.cv = Canvas(self.main_frame, bg="#8fb1e8", height=self.wa_height, width=str(int(self.wa_width) - int(self.menu_width)))
-=======
-        self.menu_frame = Frame(self.root, bg="#bfc0c1")
-        self.ml_menu_frame = Frame(self.root, bg="#bfc0c1")
-        self.cv = Canvas(self.main_frame, bg="#97b1e5", height=self.wa_height, width=str(int(self.wa_width) - int(self.menu_width)))
->>>>>>> fcf95143b3e71cdb0f4693627041c671b5e32402
 
         self.width_label_textvar = StringVar()
         self.height_label_textvar = StringVar()
