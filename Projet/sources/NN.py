@@ -2,18 +2,34 @@ import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
 import pandas
 import os
+import pandas
 import numpy as np
 import matplotlib
 
 
 # Technically it's an interface between my app and tensorflow, but to be honest "Neural Interface" sounds cool
 class NeuralInterface:
-    def __init__(self, in_image_width=0, in_image_height=0):
+    def __init__(self, conf, in_image_width=0, in_image_height=0):
+        self.config = conf
         # We disable annoying warnings about soon-to-be-deprecated functions. This isn't exactly a good practice, but since the project will be archived in less than a month, I don't see any problems
         self.session = tf.InteractiveSession()
 
         tf.logging.set_verbosity(tf.logging.ERROR)
 
+        self.dataset = None
+
+        # self.run(input_data.read_data_sets("MNIST_data/", one_hot=True))
+
+    def import_data(self, data, labels):
+        # Removes the first row of labels, which are column titles
+        train, test = tf.keras.datasets.mnist.load_data()
+        mnist_x, mnist_y = train
+
+        features = list()
+        for image in data:
+            features.append(np.asarray(image))
+        print(labels)
+        self.dataset = tf.data.Dataset.from_tensor_slices(data)
 
     @staticmethod
     def weight_variable(shape):
