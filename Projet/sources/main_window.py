@@ -26,6 +26,15 @@ class MainWindow:
         self.ml_algorithm = self.config['ml_algorithm_path']
         self.ml_root_size = self.config['ml_window_size']
 
+        # Dataset dialogue variables
+        self.dataset_dialog = None
+        self.dataset_current_step = 0
+        self.dataset_canvas = None
+        self.csvfile = None
+        self.dataset_images = list()
+        self.dataset_sources_path = list()
+        self.dataset_label_entry = None
+
         # Images which are displayed on the canvas are also saved as a numpy array, so we can manipulate them and use the array for NN processing
         self.image = None
 
@@ -40,9 +49,7 @@ class MainWindow:
         self.root.title(self.window_name)
         self.root.resizable(False, False)
         self.root.geometry(self.window_size)
-        self.root.canvas_elements = list()
         # Main window has focus by default
-        self.root.focus_set()
 
         self.ml_root = None
 
@@ -53,9 +60,9 @@ class MainWindow:
         # Instantiating widgets
         # TODO: pour l'instant, la fenêtre n'est pas resizable. Si elle le devient, il faudra trouver un moyen de faire marcher tout ça
         self.main_frame = Frame(self.root, width=400, bg="#8a0be5")
-        self.menu_frame = Frame(self.root, bg="#48f442")
-        self.ml_menu_frame = Frame(self.root, bg="#0dba38")
-        self.cv = Canvas(self.main_frame, bg="#4286f4", height=self.wa_height, width=str(int(self.wa_width) - int(self.menu_width)))
+        self.menu_frame = Frame(self.root, bg="#aeb3ba")
+        self.ml_menu_frame = Frame(self.root, bg="#aeb3ba")
+        self.cv = Canvas(self.main_frame, bg="#8fb1e8", height=self.wa_height, width=str(int(self.wa_width) - int(self.menu_width)))
 
         self.width_label_textvar = StringVar()
         self.height_label_textvar = StringVar()
@@ -63,8 +70,8 @@ class MainWindow:
         # Width/Height labels
         self.width_label = Label(self.menu_frame, text="Largeur:", width=15)
         self.height_label = Label(self.menu_frame, text="Hauteur:", width=15)
-        self.width_label_value = Label(self.menu_frame, textvariable=self.width_label_textvar, width=7, bg="#e2aaaa")
-        self.height_label_value = Label(self.menu_frame, textvariable=self.height_label_textvar, width=7, bg="#e2aaaa")
+        self.width_label_value = Label(self.menu_frame, textvariable=self.width_label_textvar, width=6, bg="#e2aaaa")
+        self.height_label_value = Label(self.menu_frame, textvariable=self.height_label_textvar, width=6, bg="#e2aaaa")
 
         # Selection box
         self.rect = RectTracker(self.cv, self.root, self.config, self.width_label_textvar, self.height_label_textvar, self.width_label_value, self.height_label_value)
@@ -79,15 +86,13 @@ class MainWindow:
         self.width_label_textvar.set("0")
         self.height_label_textvar.set("0")
 
-
-
         # Ml options button
         self.ml_options_button = Button(self.ml_menu_frame, text="Options du Réseau Neuronal...", command=self.open_ml_dialog, width=22)
 
         # Placing widgets on the window
         self.main_frame.grid(column=0, row=0)
         self.menu_frame.grid(column=1, row=0, columnspan=2, ipady=5, sticky=N, padx=2)
-        self.ml_menu_frame.grid(column=1, row=0, pady=200, padx=2, sticky=N)
+        self.ml_menu_frame.grid(column=1, row=0, pady=200, padx=5, sticky=N)
         self.cv.grid(column=0, row=0, rowspan=6)
 
         self.open_button.grid(column=0, row=0, pady=5, padx=10, rowspan=2, sticky=W, columnspan=2)
@@ -100,10 +105,6 @@ class MainWindow:
         self.height_label_value.grid(column=1, row=10)
 
         self.ml_options_button.grid(column=0, row=0, pady=10, padx=10)
-
-        ## TODO: REMOVE ##
-        self.load_image("bleh")
-        ## ##
 
         self.root.mainloop()
 
@@ -161,34 +162,43 @@ class MainWindow:
         if path is not "":
             self.save_dataset(path)
 
-    def save_dataset(self, images):
-        path = filedialog.askdirectory(title="Sélectionnez un dossier dans lequel sauvegarder votre dataset")
-        for image in images:
-            shutil.copy(image, path)
+    def step_dataset(self, event):
+        # TODO: ici il y a une grosse couille, qui vient peut être de NumpyImage (pyimageX doesn't exist bullshit). GL&HF
+        #self.dataset_current_step
+        # shutil.copy(image, path)
+        self.dataset_current_step += 1
+        print(self.dataset_current_step)
+        print(len(self.dataset_images))
+        if self.dataset_current_step == len(self.dataset_images) -1:
+            self.dataset_current_step = 0
+        #if self.dataset_current_step == len(images) - 1:
+            #self.csvfile.close()
 
-        dataset_dialog = Tk()
-        dataset_dialog.geometry("200x200")
-        dataset_canvas = Canvas(dataset_dialog, bg="#1d69e2", width=100, height=200)
+    def save_dataset(self, images_path):
+        save_path = filedialog.askdirectory(title="Sélectionnez un dossier dans lequel sauvegarder votre dataset")
 
-        entry_label = Label(text="Valeur de l'image")
-        entry_label.pack(side=RIGHT)
+        self.dataset_current_step = 0
+        self.dataset_dialog = Tk()
+        self.dataset_dialog.geometry(self.config['dataset_window_size'])
+        self.dataset_canvas = Canvas(self.dataset_dialog, bg="#1d69e2", width=100, height=150)
+        self.dataset_dialog.bind("<Return>", self.step_dataset)
+        self.dataset_dialog.bind("<Escape>", self.close_window)
 
-        entry = Entry()
-        entry.pack(side=TOP)
+        self.dataset_images = self.load_image(images_path, True, canvas=self.dataset_canvas)
 
-        dataset_canvas.pack(side=LEFT)
-        csvfile = open(path + "/data.csv", 'w')
+        self.dataset_label_entry = Entry(self.dataset_dialog, width=10)
+        entry_label = Label(self.dataset_dialog, text="Valeur de l'image")
+
+        self.dataset_canvas.grid(column=0, rowspan=2)
+        self.dataset_label_entry.grid(column=1, row=1, padx=0, sticky=N)
+        entry_label.grid(column=1, row=0, padx=0, sticky=W)
+        self.dataset_dialog.focus_set()
+        self.dataset_label_entry.focus()
+
+        self.csvfile = open(save_path + "/data.csv", 'w')
         fieldnames = ['path', 'label']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer = csv.DictWriter(self.csvfile, fieldnames=fieldnames)
         writer.writeheader()
-
-        # def save_labels(entries, id, label):
-            # writer.writerow({'path': path + image.split("/")[len(image.split("/"))-1], 'label': label})
-
-        csvfile.close()
-
-        self.ml_root.focus_set()
-
 
     def save_image(self):
         path = filedialog.asksaveasfilename(confirmoverwrite=True, filetypes=self.filetypes)
@@ -198,28 +208,28 @@ class MainWindow:
             else:
                 self.image.save_np_as_image([self.image.origin_x, self.image.origin_y], path)
 
-    def load_image(self, path, multiple=False):
+    def load_image(self, path, multiple=False, canvas=None):
+        if canvas is None:
+            dest_cv = self.cv
+        else:
+            dest_cv = canvas
+
         if path is not "":
             if multiple is True:
-                # TODO: implémenter le chargement d'images multiples pour le collage
-                print("Error, multiple image selection is not yet implemented")
+                images = list()
+                for image in path:
+                    images.append(NumpyImage(image, dest_cv, self.config))
+                return images
+
             else:
-                ## TODO: REMOVE ##
-                if path is "bleh":
-                    path = "C:\\Users\\Jeremy.COMELLI\\Desktop\\Pingu.jpg"
-                ##
-
                 # Creating an image object
-                np_image = NumpyImage(path, self.root, self.cv, self.config)
+                np_image = NumpyImage(path, dest_cv, self.config)
 
-                # Image object is added to our list
+                # Displays the image
                 self.image = np_image
 
             # Finally, every image is added onto the canvas
             self.image.add_to_canvas()
-
-        self.root.update_idletasks()
-        self.root.update()
 
     @staticmethod
     def close_window(event):
@@ -231,8 +241,7 @@ class MainWindow:
 
 
 class NumpyImage:
-    def __init__(self, path, root, canvas, conf, origin=[0, 0]):
-        self.root = root
+    def __init__(self, path, canvas, conf, origin=[0, 0]):
         self.cv = canvas
         self.config = conf
         self.cv_width, self.cv_height = list(map(int, self.config['work_area_dimensions'].split(",")))
@@ -258,18 +267,20 @@ class NumpyImage:
     def load(self):
         self.image_np = misc.imread(self.path)
         self.image_tk = ImageTk.PhotoImage(Image.fromarray(self.image_np))
+
         self.width, self.height = self.image_tk.width(), self.image_tk.height()
+
         if self.width > self.cv_width or self.height > self.cv_height:
             messagebox.showinfo("Erreur de sélection", "Erreur, la résolution de l'image dépasse 800x600, elle sera donc étirée")
             self.image_np = cv2.resize(self.image_np, dsize=(self.cv_width, self.cv_height))
             self.image_tk = ImageTk.PhotoImage(Image.fromarray(self.image_np))
             self.width, self.height = self.image_tk.width(), self.image_tk.height()
 
-
     # Replaces current picture with new one on the canvas
     def add_to_canvas(self):
-        self.cv.delete(self.image_tk)
+        #self.cv.delete(self.image_tk)
         self.cv.create_image(self.origin_x, self.origin_y, image=self.image_tk, anchor='nw')
+
 
     # Creates a new file, where we want to save the current image (possibly cropped)
     def save_np_as_image(self, topleft, size, save_path="-1"):

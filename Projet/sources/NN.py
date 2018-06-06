@@ -82,7 +82,7 @@ class NeuralInterface:
         correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
         self.session.run(tf.global_variables_initializer())
-        for i in range(20000):
+        for i in range(10000):
             batch = dataset.train.next_batch(50)
             if i % 100 == 0:
                 train_accuracy = accuracy.eval(feed_dict={x:batch[0], y_: batch[1], keep_prob: 1.0})
