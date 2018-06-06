@@ -11,6 +11,7 @@ import cv2
 from scipy import misc
 import numpy
 
+
 class MainWindow:
     def __init__(self, conf):
         self.config = conf
@@ -26,6 +27,7 @@ class MainWindow:
         self.ml_algorithm = self.config['ml_algorithm_path']
         self.ml_root_size = self.config['ml_window_size']
 
+<<<<<<< HEAD
         # Dataset dialogue variables
         self.dataset_dialog = None
         self.dataset_current_step = 0
@@ -34,6 +36,11 @@ class MainWindow:
         self.dataset_images = list()
         self.dataset_sources_path = list()
         self.dataset_label_entry = None
+=======
+        # dataset variables
+
+
+>>>>>>> fcf95143b3e71cdb0f4693627041c671b5e32402
 
         # Images which are displayed on the canvas are also saved as a numpy array, so we can manipulate them and use the array for NN processing
         self.image = None
@@ -60,9 +67,12 @@ class MainWindow:
         # Instantiating widgets
         # TODO: pour l'instant, la fenêtre n'est pas resizable. Si elle le devient, il faudra trouver un moyen de faire marcher tout ça
         self.main_frame = Frame(self.root, width=400, bg="#8a0be5")
+<<<<<<< HEAD
         self.menu_frame = Frame(self.root, bg="#aeb3ba")
         self.ml_menu_frame = Frame(self.root, bg="#aeb3ba")
         self.cv = Canvas(self.main_frame, bg="#8fb1e8", height=self.wa_height, width=str(int(self.wa_width) - int(self.menu_width)))
+=======
+>>>>>>> fcf95143b3e71cdb0f4693627041c671b5e32402
 
         self.width_label_textvar = StringVar()
         self.height_label_textvar = StringVar()
@@ -116,25 +126,11 @@ class MainWindow:
 
         open_multiple_button = Button(self.ml_root, text="Créer un dataset...", command=self.select_dataset, width=22)
 
-        # TODO: créer une fonction de création d'algorithme
-        create_network_button = Button(self.ml_root, text="Nouveau Réseau", command=self.select_dataset, width=22)
 
-        # TODO: Créer une fonction d'entraînement de l'algorithme (ouvrir le dataset, ...)
-        train_network_button = Button(self.ml_root, text="Entraîner un Réseau", command=self.select_dataset, width=22)
 
-        # TODO: Créer une fonction permettant de tester l'algorithme
-        test_network_button = Button(self.ml_root, text="Tester un Réseau", command=self.select_dataset, width=22)
 
-        # TODO: mettre en place la sélection d'algorithme par défaut
-        default_network_button = Button(self.ml_root, text="Sélectionner l'algorithme à utiliser", command=self.load_algorithm, width=22)
 
-        open_multiple_button.grid(column=0, row=0, pady=5, padx=10, ipadx=15)
-        create_network_button.grid(column=0, row=1, pady=5, padx=10, ipadx=15)
-        train_network_button.grid(column=0, row=2, pady=5, padx=10, ipadx=15)
-        test_network_button.grid(column=0, row=3, pady=5, padx=10, ipadx=15)
-        default_network_button.grid(column=0, row=3, pady=5, padx=10, ipadx=15)
 
-        self.ml_root.bind("<Escape>", self.close_window)
 
     def load_algorithm(self):
         print("Sélection de l'alorithme par défaut")
@@ -150,6 +146,8 @@ class MainWindow:
             self.rect.delete()
         else:
             messagebox.showinfo("Impossible de recadrer", "Veuillez sélectionner une zone à recadrer")
+
+
 
     def open_select_dialog(self):
         self.load_image(filedialog.askopenfilename(filetypes=self.filetypes, title="Sélectionnez un fichier à charger", initialdir=os.path.expanduser("~/Desktop")))
@@ -273,9 +271,15 @@ class NumpyImage:
         if self.width > self.cv_width or self.height > self.cv_height:
             messagebox.showinfo("Erreur de sélection", "Erreur, la résolution de l'image dépasse 800x600, elle sera donc étirée")
             self.image_np = cv2.resize(self.image_np, dsize=(self.cv_width, self.cv_height))
+
             self.image_tk = ImageTk.PhotoImage(Image.fromarray(self.image_np))
             self.width, self.height = self.image_tk.width(), self.image_tk.height()
 
+<<<<<<< HEAD
+=======
+    def grayscale_convert(self):
+        self.image_np = np.dot(self.image_np[..., :3], [0.2,0.5,0.3])
+>>>>>>> fcf95143b3e71cdb0f4693627041c671b5e32402
     # Replaces current picture with new one on the canvas
     def add_to_canvas(self):
         #self.cv.delete(self.image_tk)

@@ -13,7 +13,7 @@ class NeuralInterface:
         self.session = tf.InteractiveSession()
 
         tf.logging.set_verbosity(tf.logging.ERROR)
-        self.run(input_data.read_data_sets("MNIST_data/", one_hot=True))
+
 
     @staticmethod
     def weight_variable(shape):
