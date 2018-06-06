@@ -5,7 +5,7 @@ import configparser
 parser = configparser.ConfigParser()
 
 parser.read("config.ini")
-window = main_window.MainWindow(parser['MAIN_WINDOW'])
+window = main_window.MainWindow(parser['MAIN_WINDOW'], parser['NeuralNetwork'])
 
 
 
