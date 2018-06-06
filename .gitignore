@@ -101,9 +101,8 @@ ENV/
 .mypy_cache/
 *.docx
 *.xml
-Dataset/Originaux - digits/data.csv
-.idea/inspectionProfiles/Project_Default.xml
-.idea/TPI.iml
-.idea/workspace.xml
+.idea/
 *.xml
-Dataset/test2/data.csv
+
+
+Dataset/
