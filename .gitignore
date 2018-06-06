@@ -99,3 +99,7 @@ ENV/
 
 # mypy
 .mypy_cache/
+*.docx
+*.xml
+Dataset/Originaux - digits/data.csv
+.idea/inspectionProfiles/Project_Default.xml
